@@ -1,0 +1,441 @@
+RUN ROM
+BITS == 8
+MINHEAP 0
+MINSTACK 3
+MINREG 10
+
+// register mapping: 
+// 8-10: y
+// 7: x
+// 6: plant pointer
+
+.plants
+DW [50 100]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+DW [7 0]
+DW [7 0]
+DW [7 0]
+DW [7 0]
+
+.waters
+DW 3
+.soils
+DW 3
+.coins
+DW 10
+
+.counter
+DW 0
+
+.statsoil
+DW [5 'S' 'O' 'I' 'L' ':']
+.statwater
+DW [5 'W' 'A' 'T' 'R' ':']
+.stattime
+DW [9 'R' 'I' 'P' 'E' 'N' 'E' 'S' 'S' ':']
+.statcoin
+DW [6 'C' 'O' 'I' 'N' 'S' ':']
+.need
+DW ['N' 'E' 'E' 'D']
+.has
+DW ['H' 'A' 'V' 'E']
+.corp
+DW ['C' 'O' 'R' 'P']
+.apts
+DW ['A' 'P' 'T' 'S']
+.mart
+DW ['M' 'A' 'R' 'T']
+.shop
+DW ['S' 'H' 'O' 'P']
+.player
+DW [' ' 0xa4 '<' ' ']
+.clear
+DW [0x1b '[' '2' 'J']
+.desk
+DW [9 '\n' '\n' '\n' '\n' '>' ' ' 0xa4 '<' '\n']
+.buy
+DW [4 'B' 'U' 'Y' ':']
+.sel
+DW [5 'S' 'E' 'L' 'L' ':']
+.products
+.cabg
+DW ['C' 'A' 'B' 'G']
+.peas
+DW ['P' 'E' 'A' 'S']
+.flwr
+DW ['F' 'L' 'W' 'R']
+.bush
+DW ['B' 'U' 'S' 'H']
+.watr
+DW ['W' 'A' 'T' 'R']
+.soil
+DW ['S' 'O' 'I' 'L']
+.none
+DW ['N' 'O' 'N' 'E']
+DW ['N' 'O' 'N' 'E']
+.name
+DW [5 'T' 'Y' 'P' 'E' ':']
+.plantid
+DW [16 '\n' 'P' 'O' 'T' ' ' 'I' 'D' ' ' 'I' 'N' ' ' 'H' 'A' 'N' 'D' ':']
+.chooseone
+DW [33 'W' '/' 'S' ':' 'c' 'h' 'o' 'o' 's' 'e' ' ' 'A' ':' 's' 'e' 'l' 'e' 'c' 't' ' ' 'D' ':' 'c' 'i' 't' 'y' '/' 'g' 'r' 'd' 'n' '\n' '\n']
+.tendashes
+DW [13 '*' '-' '-' '-' '-' '-' '-' '-' '-' '-' '-' '*' '\n']
+
+imm r10 1
+imm r9 0xde
+imm r8 0xd0
+
+.draw
+    OUT %WAIT 25
+    IN r1 %GAMEPAD
+    bne .rightskip r1 0x20
+        and r2 r7 1
+        bnz .skipright r2
+            xor r7 r7 2
+        .skipright
+        and r7 r7 2
+    .rightskip
+    bne .leftskip r1 0x10
+        bev .econskip r7
+        bne .econplantskip r7 3 // done
+            lod r2 r4
+            bod .econsoilskip r5
+                and r1 r2 32
+                bnz .econsoilskip r1
+                lod r1 .soils
+                brz .econsoilskip r1
+                    dec r1 r1
+                    str .soils r1
+                    or r2 r2 32
+                    str r4 r2
+            .econsoilskip
+            bev .econwatrskip r5
+                and r1 r2 16
+                bnz .econwatrskip r1
+                lod r1 .waters
+                brz .econwatrskip r1
+                    dec r1 r1
+                    str .waters r1
+                    or r2 r2 16
+                    str r4 r2
+            .econwatrskip
+        .econplantskip
+        bne .leftskip r7 1 // not done
+            cal .saledetails
+            mlt r4 r6 2
+            brg .econpersonsellskip r5 3
+                lod r2 r4
+                and r2 r2 7
+                bne .leftskip r1 r2
+                lod r2 r4
+                and r2 r2 48
+                bne .leftskip r2 48
+                llod r2 r4 1
+                bne .leftskip r2 100
+                str r4 7
+                lstr r4 1 0
+                lod r2 .coins
+                add r2 r2 r3
+                str .coins r2
+                jmp .leftskip
+            .econpersonsellskip
+            bre .leftskip r1 6
+                lod r2 .coins
+                brl .leftskip r2 r3
+                brg .econplantbuyskip r1 3
+                    lod r2 r4
+                    and r2 r2 7
+                    bne .leftskip r2 7
+                    lod r2 r4
+                    and r2 r2 48
+                    or r2 r2 r1
+                    str r4 r2
+                .econplantbuyskip
+                lod r2 .coins
+                sub r2 r2 r3
+                str .coins r2
+                bne .econsoilbuyskip r1 5
+                    lod r2 .soils
+                    add r2 r2 1
+                    str .soils r2
+                .econsoilbuyskip
+                bne .econwatrbuyskip r1 4
+                    lod r2 .waters
+                    add r2 r2 1
+                    str .waters r2
+                .econwatrbuyskip
+        .econskip
+        or r7 r7 1
+    .leftskip
+    bne .upskip r1 0x40
+        BNE .outsideup r7 0
+        DEC r8 r8
+        SUB r2 r10 r9
+        MOV r10 r9
+        MOV r9 r2
+        .outsideup
+        BEV .personup r7
+        DEC r5 r5
+        .personup
+        BNE .gardenup r7 2
+        DEC r6 r6
+        .gardenup
+    .upskip
+    bne .downskip r1 0x80
+        BNE .outsidedown r7 0
+        INC r8 r8
+        ADD r2 r9 r10
+        MOV r9 r10
+        MOV r10 r2
+        .outsidedown
+        BEV .persondown r7
+        INC r5 r5
+        .persondown
+        BNE .gardendown r7 2
+        INC r6 r6
+        .gardendown
+    .downskip
+
+    // draw here
+    imm r1 .chooseone
+    cal .printn
+    
+    BNE .plantskip r7 3
+        bod .plantskipsoil r5
+            cal .soilnamer
+        .plantskipsoil
+        bev .plantskipwater r5
+            cal .watrnamer
+        .plantskipwater
+    .plantskip
+    
+    BNE .gardenskip r7 2
+        and r6 r6 31
+        imm r1 .tendashes
+        cal .printn
+        cal .plantnamer
+        cal .soilnamer
+        cal .watrnamer
+        imm r1 .stattime
+        cal .printn
+        llod r1 r4 1
+        cal .numbreturn
+        imm r1 .tendashes
+        cal .printn
+    .gardenskip
+    
+    BNE .outsideskip r7 0
+        cal .namelesi
+        cal .btype
+        IMM r3 ' '
+        IMM r4 ' '
+        IMM r5 5
+        .buildingloop
+            OUT %TEXT '\n'
+            SBRG .floorskip r1 0
+                IMM r4 '_'
+            .floorskip
+            OUT %TEXT r3
+            OUT %TEXT r4
+            OUT %TEXT r3
+            DEC r1 r1
+            bne .wallskip r1 0xff
+                IMM r3 '|'
+            .wallskip
+            DEC r5 r5
+            BRG .buildingloop r5 0
+        imm r1 .player
+        cal .print4
+    .outsideskip
+    
+    BNE .personskip r7 1
+        and r5 r5 7
+        cal .namelesi // show building name
+        imm r1 .buy
+        brg .personskip0 r5 3 // if selling,
+            imm r1 .sel // print sel:
+        .personskip0
+        cal .printn
+        cal .saledetails
+        cal .plantprint
+        imm r1 .statcoin
+        cal .printn
+        cal .saledetails
+        out %numb r3
+        imm r1 .desk
+        cal .printn
+    .personskip
+    
+    out %text '\n'
+    imm r1 .statsoil
+    cal .printn
+    lod r1 .soils
+    cal .numbreturn
+    imm r1 .statwater
+    cal .printn
+    lod r1 .waters
+    cal .numbreturn
+    imm r1 .statcoin
+    cal .printn
+    lod r1 .coins
+    out %numb r1
+    imm r1 .plantid
+    cal .printn
+    out %numb r6
+    
+    .awaitoff // while ( input is pressed ){}
+    in r1 %gamepad
+    bnz .awaitoff r1
+    IN r0 %WAIT // wait until next frame
+    lod r1 .counter
+    inc r1 r1
+    mod r1 r1 40
+    str .counter r1
+    bnz .endcount r1
+    imm r1 .plants
+    add r2 r1 64
+    .incallloop
+        llod r3 r1 0
+        brl .ctrcont r3 48
+        brg .ctrcont r3 51
+        llod r3 r1 1
+        bre .ctrcont r3 100
+        inc r3 r3
+        lstr r1 1 r3
+        .ctrcont
+        add r1 r1 2
+        bne .incallloop r1 r2
+    .endcount
+    // clear screen
+    imm r1 .clear
+    cal .print4
+
+    JMP .draw
+
+.namelesi // DONE
+    out %text r9
+    out %text ' '
+    cal .btype
+    mlt r1 r1 4
+    add r1 r1 .corp
+    cal .print4
+    ret
+
+.print4 // done
+    add r2 r1 4
+    .print4loop
+    lod r3 r1
+    out %text r3
+    inc r1 r1
+    brl .print4loop r1 r2
+    out %text '\n'
+    ret
+
+.btype // done
+    mod r1 r8 4
+    inc r1 r1
+    mod r1 r10 r1
+    ret
+
+.printn // done
+    LOD r2 r1
+    ADD r2 r2 r1
+    .printn_loop
+        INC r1 r1
+        LOD r3 r1
+        OUT %TEXT r3
+        BRL .printn_loop r1 r2
+    RET
+
+.showneed // done
+    add r1 r3 .need
+    cal .print4
+    ret
+
+.plantnamer // done
+    imm r1 .name
+    cal .printn
+    mlt r4 r6 2
+    lod r1 r4
+    and r1 r1 7
+    cal .plantprint
+    ret
+.soilnamer // done
+    imm r1 .statsoil
+    cal .printn
+    lod r3 r4
+    and r3 r3 0x20
+    bsr r3 r3 3
+    cal .showneed
+    ret
+.watrnamer // done
+    imm r1 .statwater
+    cal .printn
+    lod r3 r4
+    and r3 r3 0x10
+    bsr r3 r3 2
+    cal .showneed
+    ret
+
+.saledetails
+    cal .btype
+    mov r2 r1
+    mov r1 r5
+    bne .saledetailsskip r2 3
+    brl .saledetailsskip r5 4
+        and r1 r5 3
+    .saledetailsskip
+    bsl r3 1 r5
+    and r3 r3 r9
+    bnz .saledetailsskip1 r3
+        imm r1 6
+    .saledetailsskip1
+    and r3 r5 3
+    add r3 r3 1
+    brg .saledetailsskip2 r5 3
+        add r3 r3 3
+    .saledetailsskip2
+    ret
+.plantprint
+    mlt r1 r1 4
+    add r1 r1 .cabg
+    cal .print4
+    ret
+.numbreturn
+    out %numb r1
+    out %text '\n'
+    ret
